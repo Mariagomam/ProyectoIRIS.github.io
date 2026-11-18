@@ -1,0 +1,244 @@
+---
+title: "IRIS DATA"
+subtitle: "Ejercicio tipo"
+author: "María González Martín"
+date: "`r Sys.Date()`"
+output:
+  github_document:
+    html_preview: false
+  html_document:
+    toc: true
+    number_sections: true
+bibliography: libraries.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r dependencies, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+```
+
+Elaboraremos un informe reproducible utilizando **R Markdown** y el conjunto de datos *iris*.
+
+Para realizar este informe utilizaremos los paquetes *dplyr*, *ggplot2* y *knitr*.
+
+En primer lugar, crea un nuevo archivo de referencias bibliográficas en formato **BibTeX**, utilizando el código que hemos visto en clase. Guarda el archivo con el nombre `libraries.bib`.
+
+# Encabezado YAML
+
+El encabezado YAML del documento se encuentra al principio del archivo.
+
+# Opciones globales de código
+
+Las opciones globales de los bloques de código R se han establecido en el bloque inicial "setup". 
+
+# Conocimiento del conjunto de datos e introducción
+
+El conjunto de datos `iris` contiene 150 observaciones correspondientes a tres especies de iris: *Iris setosa*, *Iris versicolor* e *Iris virginica*. Se han medido cuatro características de las flores, expresadas en centímetros: longitud y anchura del sépalo (*Sepal.Length* y *Sepal.Width*) y longitud y anchura del pétalo (*Petal.Length* y *Petal.Width*). Hay 50 observaciones de cada especie.
+
+A continuación se muestran imágenes de las tres especies:
+
+![Iris setosa](iris_setosa.jpeg){width=50%}
+
+
+
+![Iris versicolor](iris_versicolor.jpeg){width=50%}
+
+
+
+![Iris virginica](iris_virginica.jpeg){width=50%}
+
+
+
+# Exploración inicial de los datos. Código R en línea
+
+El conjunto de datos `iris` contiene `r ncol(iris)` variables y `r nrow(iris)` observaciones.
+
+Las medias de las variables numéricas son las siguientes:
+
+- La media de la longitud del sépalo (*Sepal.Length*) es `r mean(iris$Sepal.Length)` cm.
+- La media de la anchura del sépalo (*Sepal.Width*) es `r mean(iris$Sepal.Width)` cm.
+- La media de la longitud del pétalo (*Petal.Length*) es `r mean(iris$Petal.Length)` cm.
+- La media de la anchura del pétalo (*Petal.Width*) es `r mean(iris$Petal.Width)` cm.
+
+# Tabla de datos
+
+La siguiente tabla muestra los diez primeros registros del conjunto de datos `iris`.
+
+```{r tabla-iris, echo=FALSE}
+knitr::kable(
+  head(iris, 10),
+  caption = "Tabla 1. Primeros diez registros del conjunto de datos iris", 
+  align = 'c'
+)
+```
+
+# Manipulación de datos
+
+Creamos un nuevo conjunto de datos que contiene únicamente las observaciones cuya anchura del pétalo es mayor que 1.
+
+```{r filtrado, echo=FALSE}
+datos_filtrados <- iris %>%
+  filter(Petal.Width > 1)
+
+datos_filtrados
+```
+
+Agrupamos las observaciones por especie y calculamos el número de individuos de cada una.
+
+```{r recuento-especies, echo=FALSE}
+recuento_especies <- datos_filtrados %>%
+  group_by(Species) %>%
+  summarise(N = n())
+
+recuento_especies
+```
+
+```{r include=FALSE}
+versicolor <- datos_filtrados %>% filter(Species == "versicolor")
+virginica <- datos_filtrados %>% filter(Species == "virginica")
+```
+
+En el conjunto de datos filtrado hay `r nrow(versicolor)` individuos de la especie *versicolor* y `r nrow(virginica)` individuos de la especie *virginica*.
+
+# Test estadístico y representación gráfica
+
+Utilizamos el conjunto de datos obtenido en la pregunta anterior para comparar las medias de las dos especies mediante dos test t para muestras independientes.
+
+## Comparación de la anchura del pétalo
+
+**Hipótesis:**
+
+- H0: la media de la anchura del pétalo es igual en las dos especies.
+- H1: la media de la anchura del pétalo es diferente en las dos especies.
+
+Realizamos el test t:
+
+```{r include=FALSE}
+petalo <- datos_filtrados |> pull(Petal.Width)
+
+especies <- datos_filtrados |> pull(Species)
+```
+
+```{r test-petal-width, echo=FALSE}
+test_petal <- t.test(
+  petalo ~ especies
+)
+
+test_petal
+```
+
+El p-valor obtenido es `r (test_petal$p.value)`.
+
+```{r grafico-petal-width, echo=FALSE}
+datos_filtrados %>% 
+  ggplot(aes(x = Species, y = Petal.Width, color = Species)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape = NA) + 
+  geom_jitter(width = 0.15, alpha = 0.4) + 
+  labs(
+    title = "Anchura del pétalo según la especie",
+    x = "Especie",
+    y = "Anchura del pétalo (cm)"
+  ) +
+  theme(legend.position = "none")
+```
+
+Con un nivel de significación del 5 %, `r ifelse(test_petal$p.value < 0.05, "se rechaza la hipótesis nula. Existen diferencias estadísticamente significativas entre las medias de las dos especies.", "no se rechaza la hipótesis nula. No se encuentran diferencias estadísticamente significativas entre las medias de las dos especies.")`
+
+## Comparación de la anchura del sépalo
+
+**Hipótesis:**
+
+- H0: la media de la anchura del sépalo es igual en las dos especies.
+- H1: la media de la anchura del sépalo es diferente en las dos especies.
+
+Realizamos el test t:
+
+```{r include=FALSE}
+sepalo <- datos_filtrados %>% 
+  pull(Sepal.Width)
+```
+
+
+```{r test-sepal-width, echo=FALSE}
+test_sepal <- t.test(sepalo ~ especies)
+
+test_sepal
+```
+
+El p-valor obtenido es `r (test_sepal$p.value)`.
+
+```{r grafico-sepal-width, echo=FALSE}
+datos_filtrados %>% 
+  ggplot(aes(x = Species, y = Sepal.Width, color = Species)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape = NA) + 
+  geom_jitter(width = 0.15, alpha = 0.4) + 
+  labs(
+    title = "Anchura del sépalo según la especie",
+    x = "Especie",
+    y = "Anchura del sépalo (cm)"
+  ) +
+  theme(legend.position = "none")
+```
+
+Con un nivel de significación del 5 %, `r ifelse(test_sepal$p.value < 0.05, "se rechaza la hipótesis nula. Existen diferencias estadísticamente significativas entre las medias de las dos especies.", "no se rechaza la hipótesis nula. No se encuentran diferencias estadísticamente significativas entre las medias de las dos especies.")`
+
+# Modelización y representación gráfica
+
+Estudiamos la relación entre la longitud del pétalo (*Petal.Length*) y su anchura (*Petal.Width*) utilizando el conjunto de datos obtenido en la pregunta 6.
+
+## Representación gráfica
+
+```{r grafico-regresion, echo=FALSE, fig.align='right'}
+datos_filtrados %>% 
+  ggplot(aes(x = Petal.Length, y = Petal.Width, color = Species)) + 
+  geom_jitter() + 
+  ggtitle("Relación entre la longitud y la anchura del pétalo") +
+  labs(
+    x = "Longitud del pétalo (cm)",
+    y = "Anchura del pétalo (cm)"
+  ) +
+  geom_smooth(method = "lm", se = TRUE, col = "black")
+```
+
+## Modelo de regresión lineal
+
+Ajustamos un modelo de regresión lineal simple, considerando la anchura del pétalo como variable dependiente y la longitud del pétalo como variable independiente.
+
+```{r modelo-regresion, echo=FALSE}
+modelo <- lm(
+  Petal.Width ~ Petal.Length,
+  data = datos_filtrados
+)
+
+summary(modelo)
+```
+
+El coeficiente de regresión de la variable *Petal.Length* es `r coef(modelo)["Petal.Length"]`.
+
+El R² es `r summary(modelo)$r.squared`.
+
+
+>También podemos redondearlo mediante `round` e indicando el número de decimales
+>
+>El coeficiente de regresión de la variable *Petal.Length* es `r round(coef(modelo)["Petal.Length"], 3)`.
+>
+>El R² es `r round(summary(modelo)$r.squared, 3)`.
+
+# Referencias bibliográficas
+
+Para elaborar este informe se ha utilizado el software R [@R-base] y los paquetes *dplyr* [@R-dplyr], *ggplot2* [@R-ggplot2] y *knitr* [@R-knitr].
+
+# Información de la sesión
+
+A continuación se muestra la información de la sesión de R utilizada para generar el documento.
+
+```{r informacion-sesion, echo=FALSE}
+session <- sessionInfo()
+print(session)
+```
